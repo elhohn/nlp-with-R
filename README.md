@@ -1,2 +1,2 @@
-# nlp-with-R
-Some exercises for natural language processing in R
+# NLP stuff
+- Playing around with some scripts applying NLP in R and Python
