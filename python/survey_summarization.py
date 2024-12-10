@@ -464,5 +464,32 @@ sentence = "The food quality was excellent, and the service was great."
 embedding = get_sentence_embedding(sentence, word2vec_model)
 print("Sentence embedding:", embedding)
 
+
+#########3
+# sentiment analysis!
+
+from transformers import pipeline
+
+# Load sentiment analysis pipeline
+sentiment_pipeline = pipeline("sentiment-analysis")
+
+# Function to calculate sentiment
+def calculate_transformer_sentiment(response):
+    if pd.isnull(response):
+        return None
+    result = sentiment_pipeline(response)[0]
+    return result['label'], result['score']
+
+# Apply to dataset
+data['SentimentResult'] = data['YourColumnName'].apply(calculate_transformer_sentiment)
+
+# Split into label and score
+data[['SentimentCategory', 'SentimentScore']] = pd.DataFrame(data['SentimentResult'].tolist(), index=data.index)
+
+# Print results
+print(data[['YourColumnName', 'SentimentCategory', 'SentimentScore']])
+
+
+
     
     
