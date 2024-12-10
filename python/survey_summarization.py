@@ -376,3 +376,93 @@ data = pd.read_csv('your_dataset.csv')  # Replace with your dataset path
 for column in data.columns:
     print(f"Visualizing clusters for {column}:")
     visualize_clusters(data[column], method='umap', n_clusters=5)
+    
+    
+    
+##################
+### Trying out GenSim Word2Vec
+
+'''
+Use Cases for Word2Vec in Your Dataset
+	1.	Semantic Exploration:
+	•	Find words that are contextually related.
+	•	Example: What words are similar to “community” or “investment”?
+	2.	Thematic Clustering:
+	•	Use clustered word groups to identify overarching themes in responses.
+	3.	Response Similarity:
+	•	Compare the similarity of responses by comparing their sentence embeddings using cosine similarity.
+	4.	Trend Analysis:
+	•	Examine shifts in word associations (e.g., how “local” is linked to “sustainability” or “affordability”).
+	5.	Topic Extraction:
+	•	Group responses based on their embeddings to extract key topics.
+'''
+
+from gensim.models import Word2Vec
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+import string
+
+# Preprocess Text
+def preprocess_text_word2vec(text):
+    stop_words = set(stopwords.words('english'))
+    text = text.lower().translate(str.maketrans('', '', string.punctuation))
+    tokens = word_tokenize(text)
+    tokens = [word for word in tokens if word not in stop_words and word.isalpha()]
+    return tokens
+
+# Prepare Data for Word2Vec
+def prepare_data_for_word2vec(data_column):
+    tokenized_responses = []
+    for text in data_column.dropna():
+        tokenized_responses.append(preprocess_text_word2vec(str(text)))
+    return tokenized_responses
+
+# Train Word2Vec Model
+def train_word2vec(data_column):
+    tokenized_responses = prepare_data_for_word2vec(data_column)
+    model = Word2Vec(sentences=tokenized_responses, vector_size=100, window=5, min_count=2, workers=4, sg=1)  # Skip-gram model
+    return model
+
+# Example Usage
+data = pd.read_csv('your_dataset.csv')  # Replace with your dataset path
+word2vec_model = train_word2vec(data['YourColumnName'])
+
+# Get Similar Words
+similar_words = word2vec_model.wv.most_similar("food", topn=10)
+print("Similar words to 'food':", similar_words)
+
+from sklearn.cluster import KMeans
+import numpy as np
+
+# Extract Word Embeddings and Cluster
+def cluster_word_embeddings(model, n_clusters=5):
+    word_vectors = np.array([model.wv[word] for word in model.wv.index_to_key])
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    labels = kmeans.fit_predict(word_vectors)
+    clusters = {i: [] for i in range(n_clusters)}
+    for word, label in zip(model.wv.index_to_key, labels):
+        clusters[label].append(word)
+    return clusters
+
+# Example Usage
+word_clusters = cluster_word_embeddings(word2vec_model, n_clusters=5)
+for cluster_id, words in word_clusters.items():
+    print(f"Cluster {cluster_id}: {', '.join(words)}")
+
+
+# Generate Sentence Embedding
+def get_sentence_embedding(sentence, model):
+    tokens = preprocess_text_word2vec(sentence)
+    embeddings = [model.wv[word] for word in tokens if word in model.wv]
+    if embeddings:
+        return np.mean(embeddings, axis=0)
+    else:
+        return np.zeros(model.vector_size)  # Handle cases with no valid tokens
+
+# Example Usage
+sentence = "The food quality was excellent, and the service was great."
+embedding = get_sentence_embedding(sentence, word2vec_model)
+print("Sentence embedding:", embedding)
+
+    
+    
